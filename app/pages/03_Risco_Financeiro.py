@@ -63,6 +63,9 @@ if bands_path.exists():
         f"Recall somente alto: {band_recall['recall_alto']:.1%}; "
         f"moderado + alto: {band_recall['recall_moderado_mais_alto']:.1%}."
     )
+    bands_chart = reports_dir / "taxa_deterioracao_por_faixa_risco.png"
+    if bands_chart.exists():
+        st.image(str(bands_chart), use_container_width=True)
 
 with st.expander("Diagnóstico de multicolinearidade"):
     correlation_path = reports_dir / "matriz_correlacao.csv"

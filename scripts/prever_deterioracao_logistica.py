@@ -628,6 +628,36 @@ def _save_plots(result: dict[str, Any], output_dir: Path) -> None:
         figure.tight_layout()
         figure.savefig(output_dir / filename, dpi=150)
         plt.close(figure)
+    #A tabela de faixas já tem a evidência numérica. Então o gráfico apresenta a
+    #mesma taxa observada com o suporte de cada faixa, até para evitarmos interpretar uma
+    #barra alta de um grupo pequeno sem conhecer sua quantidade de empresas
+    bands = result["risk_bands"].copy()
+    colors = {"Baixo": "#4C78A8", "Moderado": "#F2A541", "Alto": "#C94C4C"}
+    figure, axis = plt.subplots(figsize=(8, 5))
+    bars = axis.bar(
+        bands["nivel"],
+        bands["taxa_observada"],
+        color=[colors.get(level, "#808080") for level in bands["nivel"]],
+    )
+    axis.set(
+        title="Taxa observada de deterioração por faixa de risco",
+        xlabel="Faixa de risco",
+        ylabel="Taxa observada de deterioração",
+        ylim=(0, 1),
+    )
+    axis.yaxis.set_major_formatter(plt.FuncFormatter(lambda value, _: f"{value:.0%}"))
+    for bar, row in zip(bars, bands.itertuples(index=False), strict=True):
+        axis.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.02,
+            f"{row.taxa_observada:.1%}\n{row.deterioraram}/{row.empresas} empresas",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+    figure.tight_layout()
+    figure.savefig(output_dir / "taxa_deterioracao_por_faixa_risco.png", dpi=150)
+    plt.close(figure)
     figure, axis = plt.subplots(figsize=(8, 5))
     axis.hist(probabilities, bins=20)
     axis.set(
