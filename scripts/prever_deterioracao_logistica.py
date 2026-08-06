@@ -628,9 +628,9 @@ def _save_plots(result: dict[str, Any], output_dir: Path) -> None:
         figure.tight_layout()
         figure.savefig(output_dir / filename, dpi=150)
         plt.close(figure)
-    #A tabela de faixas já tem a evidência numérica. Então o gráfico apresenta a
-    #mesma taxa observada com o suporte de cada faixa, até para evitarmos interpretar uma
-    #barra alta de um grupo pequeno sem conhecer sua quantidade de empresas
+    # A tabela de faixas já contém a evidência numérica. Este gráfico apresenta a
+    # mesma taxa observada com o suporte de cada faixa, evitando interpretar uma
+    # barra alta de um grupo pequeno sem conhecer sua quantidade de empresas.
     bands = result["risk_bands"].copy()
     colors = {"Baixo": "#4C78A8", "Moderado": "#F2A541", "Alto": "#C94C4C"}
     figure, axis = plt.subplots(figsize=(8, 5))

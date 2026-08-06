@@ -37,6 +37,69 @@ def create_scatter_plot(x_values: Any, y_values: Any, clusters: pd.Series, title
 
     return figure
 
+
+def create_pca_clusters_with_centroids_plot(result: ClusteringResult) -> Figure:
+    """Cria a projeção PCA usada para interpretar visualmente os clusters.
+
+    A PCA já foi ajustada dentro de ``run_kmeans`` exclusivamente na partição de
+    treino. Portanto, esta função não chama ``fit``: ela apenas reutiliza as
+    coordenadas e o modelo aprendidos para desenhar todas as empresas e os
+    centroides no mesmo espaço bidimensional.
+    """
+    figure, axis = plt.subplots(figsize=(10, 7))
+    clusters = result.clustered_data["cluster"].to_numpy()
+    color_map = plt.get_cmap("tab10")
+
+    # Desenhar cada grupo separadamente permite identificá-lo com clareza na legenda.
+    for cluster in sorted(set(clusters)):
+        cluster_mask = clusters == cluster
+        axis.scatter(
+            result.pca_coordinates[cluster_mask, 0],
+            result.pca_coordinates[cluster_mask, 1],
+            color=color_map(int(cluster)),
+            s=12,
+            alpha=0.45,
+            label=f"Cluster {cluster}",
+        )
+
+    # Os centros do K-Means estão no espaço padronizado de oito indicadores,
+    # exatamente o espaço usado no ajuste da PCA; por isso podem ser projetados
+    # pelo mesmo objeto PCA sem nenhum novo treinamento.
+    kmeans = result.pipeline.named_steps["kmeans"]
+    centroids_pca = result.pca_model.transform(kmeans.cluster_centers_)
+    axis.scatter(
+        centroids_pca[:, 0],
+        centroids_pca[:, 1],
+        marker="X",
+        s=220,
+        color="white",
+        edgecolors="black",
+        linewidths=1.2,
+        label="Centroide",
+        zorder=3,
+    )
+
+    for cluster, coordinate in enumerate(centroids_pca):
+        axis.annotate(
+            f"Cluster {cluster}",
+            xy=coordinate,
+            xytext=(7, 7),
+            textcoords="offset points",
+            fontsize=9,
+            fontweight="bold",
+        )
+
+    variance = result.pca_model.explained_variance_ratio_ * 100
+    axis.set_xlabel(f"Componente principal 1 ({variance[0]:.1f}% da variância)")
+    axis.set_ylabel(f"Componente principal 2 ({variance[1]:.1f}% da variância)")
+    axis.set_title(
+        "Projeção PCA dos perfis financeiros identificados pelo K-Means"
+    )
+    axis.legend(title="Perfis", loc="best")
+
+    return figure
+
+
 def save_visualizations(result: ClusteringResult, reports_dir: Path) -> None:
     reports_dir.mkdir(parents=True, exist_ok=True)
 
@@ -64,6 +127,15 @@ def save_visualizations(result: ClusteringResult, reports_dir: Path) -> None:
         output_path = reports_dir / plot_configuration["filename"]
 
         save_figure(figure=figure, output_path=output_path)
+
+    # Esta versão é direcionada ao relatório: além dos pontos, mostra os
+    # centroides projetados e explicita a variância preservada pela PCA.
+    pca_figure = create_pca_clusters_with_centroids_plot(result)
+    save_figure(
+        figure=pca_figure,
+        output_path=reports_dir / "pca_clusters_kmeans.png",
+        dpi=300,
+    )
 
     save_cluster_quantity_chart(data=clustered_data, output_path=reports_dir / "quantidade_por_cluster.png")
     save_cluster_means_chart(data=clustered_data, output_path=reports_dir / "medias_por_cluster.png")
